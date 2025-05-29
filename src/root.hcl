@@ -47,21 +47,6 @@ generate "provider" {
   path      = "provider.tf"
   if_exists = "skip"
   contents  = <<EOF
-terraform {
-  required_version = ">= 1.0"
-  
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-    databricks = {
-      source  = "databricks/databricks"
-      version = "~> 1.4"
-    }
-  }
-}
-
 provider "aws" {
   region  = "${local.aws_region}"
   profile = "${local.aws_profile_name}"
@@ -69,6 +54,14 @@ provider "aws" {
   default_tags {
     tags = ${jsonencode(local.common_tags)}
   }
+}
+
+provider "databricks" {
+  alias      = "mws"
+  host       = "https://accounts.cloud.databricks.com"
+  account_id = var.databricks_account_id
+  client_id  = var.databricks_client_id
+  client_secret = var.databricks_client_secret
 }
 EOF
 }
