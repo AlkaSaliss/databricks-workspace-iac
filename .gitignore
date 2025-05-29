@@ -150,3 +150,5 @@ test-*.tf
 test-*.tfvars
 example-*.tf
 example-*.tfvars
+
+tmp*
