@@ -152,3 +152,4 @@ example-*.tf
 example-*.tfvars
 
 tmp*
+terraform-databricks-examples/
