@@ -59,3 +59,9 @@ variable "admin_group_id" {
   type        = string
   description = "(Required) The ID of the Databricks group to be granted admin permissions on the workspace."
 }
+
+variable "ws_users" {
+  type = list(string)
+  description = "(Optional) List of users to be granted regular access to the workspace."
+  default     = []
+}

@@ -7,7 +7,7 @@ terraform {
     # AWS provider might also be needed if any AWS resources/data sources were used directly in this module
     # For now, only adding databricks as it's the one causing the error.
     aws = {
-      source = "hashicorp/aws"
+      source  = "hashicorp/aws"
       version = "~> 5.0"
     }
   }

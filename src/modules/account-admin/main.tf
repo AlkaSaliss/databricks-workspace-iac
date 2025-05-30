@@ -5,11 +5,6 @@ data "databricks_user" "owner" {
   provider  = databricks.mws
 }
 
-# resource "databricks_user" "owner" {
-#   user_name = var.account_owner_email
-# }
-
-
 # Create users at account level (not workspace level)
 # This includes both regular users and account admins
 resource "databricks_user" "unity_users" {

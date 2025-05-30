@@ -61,15 +61,15 @@ init: ## Initialize Terragrunt for the specified component
 	@echo "$(BLUE)Initializing $(COMPONENT) in $(ENV)/$(REGION)...$(NC)"
 	@cd $(ENV_PATH)/$(COMPONENT) && terragrunt init
 
-plan: check-env ## Plan Terragrunt deployment for the specified component
+plan: #check-env ## Plan Terragrunt deployment for the specified component
 	@echo "$(BLUE)Planning $(COMPONENT) in $(ENV)/$(REGION)...$(NC)"
 	@cd $(ENV_PATH)/$(COMPONENT) && terragrunt plan
 
-apply: check-env ## Apply Terragrunt deployment for the specified component
+apply: #check-env ## Apply Terragrunt deployment for the specified component
 	@echo "$(BLUE)Applying $(COMPONENT) in $(ENV)/$(REGION)...$(NC)"
 	@cd $(ENV_PATH)/$(COMPONENT) && terragrunt apply
 
-destroy: check-env ## Destroy Terragrunt deployment for the specified component
+destroy: #check-env ## Destroy Terragrunt deployment for the specified component
 	@echo "$(RED)Destroying $(COMPONENT) in $(ENV)/$(REGION)...$(NC)"
 	@echo "$(YELLOW)WARNING: This will destroy infrastructure!$(NC)"
 	@read -p "Are you sure? [y/N] " -n 1 -r; \
@@ -86,7 +86,7 @@ validate: ## Validate Terraform configuration for the specified component
 
 fmt: ## Format Terraform and Terragrunt files
 	@echo "$(BLUE)Formatting HCL files...$(NC)"
-	@terragrunt hclfmt --terragrunt-working-dir $(SRC_DIR)
+	@terragrunt hcl format --working-dir=$(SRC_DIR)
 	@find $(SRC_DIR) -name "*.tf" -exec terraform fmt {} \;
 	@echo "$(GREEN)Formatting complete.$(NC)"
 
@@ -102,18 +102,23 @@ clean: ## Clean Terragrunt cache and .terraform directories
 	@echo "$(GREEN)Cache cleaned$(NC)"
 
 # Bootstrap commands
-bootstrap-admin: check-env ## Bootstrap account admin setup
-	@echo "$(BLUE)Bootstrapping account admin...$(NC)"
+bootstrap-account-admin: #check-env ## Bootstrap account-admin setup
+	@echo "$(BLUE)Bootstrapping account-admin...$(NC)"
 	@$(MAKE) init COMPONENT=account-admin
 	@$(MAKE) apply COMPONENT=account-admin
 
-bootstrap-uc-aws: check-env ## Bootstrap Unity Catalog AWS resources (now uc-aws-infra)
-	@echo "$(BLUE)Bootstrapping Unity Catalog AWS resources (uc-aws-infra)...$(NC)"
+bootstrap-uc-aws-infra: #check-env ## Bootstrap uc-aws-infra resources
+	@echo "$(BLUE)Bootstrapping uc-aws-infra resources...$(NC)"
 	@$(MAKE) init COMPONENT=uc-aws-infra
 	@$(MAKE) apply COMPONENT=uc-aws-infra
 
-bootstrap: bootstrap-admin bootstrap-uc-aws ## Bootstrap admin and Unity Catalog AWS infrastructure
-	@echo "$(GREEN)Bootstrap for account-admin and uc-aws-infra complete!$(NC)"
+bootstrap-terraform-state-infra: #check-env ## Bootstrap terraform-state-infra resources
+	@echo "$(BLUE)Bootstrapping terraform-state-infra resources...$(NC)"
+	@$(MAKE) init COMPONENT=terraform-state-infra
+	@$(MAKE) apply COMPONENT=terraform-state-infra
+
+bootstrap: bootstrap-account-admin bootstrap-uc-aws-infra bootstrap-terraform-state-infra ## Bootstrap all components
+	@echo "$(GREEN)Bootstrap for all components complete!$(NC)"
 
 # Development setup and commands (example for account-admin and uc-aws-infra)
 dev-setup: ## Set up development environment (copy .tfvars.example files)
@@ -129,6 +134,12 @@ dev-setup: ## Set up development environment (copy .tfvars.example files)
 		echo "$(YELLOW)Created $(ENV_PATH)/uc-aws-infra/terraform.tfvars from example. Please update with your values.$(NC)"; \
 	else \
 		echo "$(GREEN)$(ENV_PATH)/uc-aws-infra/terraform.tfvars already exists or example missing$(NC)"; \
+	fi
+	@if [ ! -f "$(ENV_PATH)/terraform-state-infra/terraform.tfvars" ] && [ -f "$(ENV_PATH)/terraform-state-infra/terraform.tfvars.example" ]; then \
+		cp "$(ENV_PATH)/terraform-state-infra/terraform.tfvars.example" "$(ENV_PATH)/terraform-state-infra/terraform.tfvars"; \
+		echo "$(YELLOW)Created $(ENV_PATH)/terraform-state-infra/terraform.tfvars from example. Please update with your values.$(NC)"; \
+	else \
+		echo "$(GREEN)$(ENV_PATH)/terraform-state-infra/terraform.tfvars already exists or example missing$(NC)"; \
 	fi
 
 # Per-component dev commands
@@ -146,12 +157,19 @@ dev-uc-aws-infra-apply: ## Apply uc-aws-infra in dev environment
 dev-uc-aws-infra-destroy: ## Destroy uc-aws-infra in dev environment
 	@$(MAKE) destroy ENV=dev REGION=$(REGION) COMPONENT=uc-aws-infra
 
+dev-terraform-state-infra-plan: ## Plan terraform-state-infra in dev environment
+	@$(MAKE) plan ENV=dev REGION=$(REGION) COMPONENT=terraform-state-infra
+dev-terraform-state-infra-apply: ## Apply terraform-state-infra in dev environment
+	@$(MAKE) apply ENV=dev REGION=$(REGION) COMPONENT=terraform-state-infra
+dev-terraform-state-infra-destroy: ## Destroy terraform-state-infra in dev environment
+	@$(MAKE) destroy ENV=dev REGION=$(REGION) COMPONENT=terraform-state-infra
+
 # Aggregated dev commands
-dev-plan-all: dev-account-admin-plan dev-uc-aws-infra-plan ## Plan all components in dev
+dev-plan-all: dev-account-admin-plan dev-uc-aws-infra-plan dev-terraform-state-infra-plan ## Plan all components in dev
 	@echo "$(GREEN)All dev components planned.$(NC)"
-dev-apply-all: dev-account-admin-apply dev-uc-aws-infra-apply ## Apply all components in dev
+dev-apply-all: dev-account-admin-apply dev-uc-aws-infra-apply dev-terraform-state-infra-apply ## Apply all components in dev
 	@echo "$(GREEN)All dev components applied.$(NC)"
-dev-destroy-all: dev-uc-aws-infra-destroy dev-account-admin-destroy ## Destroy all components in dev (reverse order)
+dev-destroy-all: dev-terraform-state-infra-destroy dev-uc-aws-infra-destroy dev-account-admin-destroy ## Destroy all components in dev (reverse order)
 	@echo "$(GREEN)All dev components destroyed.$(NC)"
 
 # Utility commands

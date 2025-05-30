@@ -371,28 +371,23 @@ resource "databricks_metastore_assignment" "default_metastore" {
   default_catalog_name = "hive_metastore"
 }
 
-# Grant admin access to the workspace for the admin group
-# resource "databricks_permissions" "workspace_admin_group_permissions" {
-#   provider     = databricks.mws # Assuming you have a databricks provider configured with alias mws for account level
-#   workspace_id = databricks_mws_workspaces.this.workspace_id
-
-#   access_control {
-#     group_name       = var.admin_group_id # This will be the ID of the admin group
-#     permission_level = "ADMIN"
-#   }
-
-#   depends_on = [databricks_mws_workspaces.this]
-# }
-# resource "databricks_permission_assignment" "add_ws_admins" {
-#   principal_id = var.admin_group_id
-#   permissions  = ["ADMIN"]
-#   provider     = databricks.workspace
-#   workspace_id = databricks_mws_workspaces.this.workspace_id
-# }
-
 resource "databricks_mws_permission_assignment" "add_ws_admin_group" {
   provider     = databricks.mws
   workspace_id = databricks_mws_workspaces.this.workspace_id
   principal_id = var.admin_group_id
   permissions  = ["ADMIN"]
+}
+
+data "databricks_user" "ws_user_data" {
+  for_each  = toset(var.ws_users)
+  user_name = each.value
+  provider  = databricks.mws
+}
+
+resource "databricks_mws_permission_assignment" "assign_ws_users" {
+  for_each     = data.databricks_user.ws_user_data
+  provider     = databricks.mws
+  workspace_id = databricks_mws_workspaces.this.workspace_id
+  principal_id = each.value.id
+  permissions  = ["USER"]
 }
